@@ -1,7 +1,6 @@
 import { confirm } from "@inquirer/prompts";
-import { chmodSync, copyFileSync, existsSync, renameSync, unlinkSync } from "fs";
 import { createHash } from "crypto";
-import { readFileSync } from "fs";
+import { chmodSync, copyFileSync, existsSync, readFileSync, renameSync, unlinkSync } from "fs";
 import { basename } from "path";
 import { selectApp } from "./prompts.js";
 import { appImagePath, resolvePath } from "./utils.js";

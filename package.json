@@ -1,39 +1,40 @@
 {
-  "name": "appimage-util",
-  "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
-  "scripts": {
-    "build": "tsx ./build.ts","check": "biome check --write"
-  },
-  "keywords": [],
-  "author": "",
-  "license": "MIT",
-  "packageManager": "pnpm@10.29.3",
-  "devDependencies": {
-    "@biomejs/biome": "2.2.3",
-    "@types/node": "^25.2.3",
-    "esbuild": "^0.27.3",
-    "postject": "1.0.0-alpha.6",
-    "tsx": "^4.21.0",
-    "typescript": "^5.9.3"
-  },
-  "pnpm": {
-    "ignoredBuiltDependencies": [],
-    "onlyBuiltDependencies": [
-      "esbuild"
-    ]
-  },
-  "engines": {
-    "node": ">=22"
-  },
-  "type": "module",
-  "dependencies": {
-    "@inquirer/prompts": "^8.2.1",
-    "commander": "^14.0.3",
-    "execa": "^9.6.1",
-    "fast-glob": "^3.3.3",
-    "image-size": "^2.0.2",
-    "ini": "^6.0.0"
-  }
+	"name": "appimage-util",
+	"version": "1.0.0",
+	"description": "",
+	"main": "index.js",
+	"scripts": {
+		"build": "tsx ./build.ts",
+		"check": "biome check --write"
+	},
+	"keywords": [],
+	"author": "",
+	"license": "MIT",
+	"packageManager": "pnpm@10.29.3",
+	"devDependencies": {
+		"@biomejs/biome": "2.2.3",
+		"@types/node": "^25.2.3",
+		"esbuild": "^0.27.3",
+		"postject": "1.0.0-alpha.6",
+		"tsx": "^4.21.0",
+		"typescript": "^5.9.3"
+	},
+	"pnpm": {
+		"ignoredBuiltDependencies": [],
+		"onlyBuiltDependencies": [
+			"esbuild"
+		]
+	},
+	"engines": {
+		"node": ">=22"
+	},
+	"type": "module",
+	"dependencies": {
+		"@inquirer/prompts": "^8.2.1",
+		"commander": "^14.0.3",
+		"execa": "^9.6.1",
+		"fast-glob": "^3.3.3",
+		"image-size": "^2.0.2",
+		"ini": "^6.0.0"
+	}
 }

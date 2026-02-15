@@ -1,8 +1,8 @@
-import { chmodSync, copyFileSync, existsSync, mkdirSync, readFileSync, rmSync } from "fs";
-import { basename, extname, join } from "path";
 import { execSync, spawn } from "child_process";
 import fg from "fast-glob";
+import { chmodSync, copyFileSync, existsSync, mkdirSync, readFileSync, rmSync } from "fs";
 import { imageSize } from "image-size";
+import { basename, extname, join } from "path";
 
 export interface IconCandidate {
 	/** tmp展開先からの相対パス */

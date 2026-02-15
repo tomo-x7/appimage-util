@@ -1,10 +1,9 @@
+import fg from "fast-glob";
 import { copyFileSync, existsSync, unlinkSync } from "fs";
 import { join } from "path";
-import fg from "fast-glob";
 import type { DesktopEntry } from "./desktop.js";
 import { parseDesktop, writeDesktop } from "./desktop.js";
-import { askDesktopEntry, askIconForEdit } from "./prompts.js";
-import { selectApp } from "./prompts.js";
+import { askDesktopEntry, askIconForEdit, selectApp } from "./prompts.js";
 import { appDir, appImagePath, desktopPath, generatedDesktopPath } from "./utils.js";
 
 export async function editCommand(): Promise<void> {

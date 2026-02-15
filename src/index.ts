@@ -1,8 +1,8 @@
 import { Command } from "commander";
-import { installCommand } from "./cmd-install.js";
-import { updateCommand } from "./cmd-update.js";
 import { editCommand } from "./cmd-edit.js";
+import { installCommand } from "./cmd-install.js";
 import { uninstallCommand } from "./cmd-uninstall.js";
+import { updateCommand } from "./cmd-update.js";
 
 const program = new Command();
 

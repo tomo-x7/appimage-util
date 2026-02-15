@@ -1,7 +1,7 @@
 import { confirm, input } from "@inquirer/prompts";
 import { chmodSync, copyFileSync, existsSync, mkdirSync, unlinkSync } from "fs";
 import { basename, join } from "path";
-import { APPIMAGE_ROOT, DESKTOP_DIR } from "./constants.js";
+import { DESKTOP_DIR } from "./constants.js";
 import type { DesktopEntry } from "./desktop.js";
 import { writeDesktop } from "./desktop.js";
 import { askDesktopEntry, askIconForInstall } from "./prompts.js";

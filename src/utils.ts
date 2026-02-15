@@ -1,4 +1,4 @@
-import { existsSync, readdirSync, statSync } from "fs";
+import { existsSync, readdirSync } from "fs";
 import { join, resolve } from "path";
 import { APPIMAGE_ROOT, APPNAME_REGEX, DESKTOP_DIR } from "./constants.js";
 
