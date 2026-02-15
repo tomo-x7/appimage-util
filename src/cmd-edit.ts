@@ -27,7 +27,7 @@ export async function editCommand(): Promise<void> {
 	const answers = await askDesktopEntry(existing);
 
 	// 4. アイコン選択（4択: そのまま/手動/抽出/なし）
-	const iconChoice = await askIconForEdit(appImagePath(appname));
+	const { iconChoice, cleanup: cleanupIcons } = await askIconForEdit(appImagePath(appname));
 
 	// --- 実操作 ---
 
@@ -51,6 +51,9 @@ export async function editCommand(): Promise<void> {
 		iconAbsPath = undefined;
 	}
 	// type === "keep" の場合は何もしない
+
+	// tmp 展開の後始末（アイコンコピー後に実行）
+	cleanupIcons();
 
 	// desktop を更新
 	const entry: DesktopEntry = {

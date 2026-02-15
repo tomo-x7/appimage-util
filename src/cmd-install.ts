@@ -58,7 +58,7 @@ export async function installCommand(rawPath: string, rawAppname?: string): Prom
 	const answers = await askDesktopEntry();
 
 	// 4. アイコン選択
-	const iconChoice = await askIconForInstall(srcAppImage);
+	const { iconChoice, cleanup: cleanupIcons } = await askIconForInstall(srcAppImage);
 
 	// --- 全質問完了。以下は実操作 ---
 
@@ -89,6 +89,9 @@ export async function installCommand(rawPath: string, rawAppname?: string): Prom
 		copyFileSync(iconChoice.filePath, destIcon);
 		iconAbsPath = destIcon;
 	}
+
+	// tmp 展開の後始末（アイコンコピー後に実行）
+	cleanupIcons();
 
 	// 手順3: .desktop ファイル作成
 	const entry: DesktopEntry = {

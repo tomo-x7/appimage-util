@@ -4,6 +4,23 @@ import { chmodSync, copyFileSync, existsSync, mkdirSync, readFileSync, rmSync } 
 import { imageSize } from "image-size";
 import { basename, extname, join } from "path";
 
+/** アクティブな tmp ディレクトリ（Ctrl+C 時のクリーンアップ用） */
+const activeTmpDirs = new Set<string>();
+
+/** すべてのアクティブな tmp ディレクトリをクリーンアップ */
+export function cleanupAllTmpDirs(): void {
+	for (const dir of activeTmpDirs) {
+		try {
+			if (existsSync(dir)) {
+				rmSync(dir, { recursive: true, force: true });
+			}
+		} catch {
+			// エラーは無視
+		}
+	}
+	activeTmpDirs.clear();
+}
+
 export interface IconCandidate {
 	/** tmp展開先からの相対パス */
 	relativePath: string;
@@ -30,6 +47,7 @@ export async function extractIcons(
 ): Promise<{ candidates: IconCandidate[]; cleanup: () => void; extractDir: string }> {
 	const tmpBase = join("/tmp", `appimage-util-${process.pid}-${Date.now()}`);
 	mkdirSync(tmpBase, { recursive: true });
+	activeTmpDirs.add(tmpBase); // トラッキング開始
 
 	// AppImage を tmp にコピーして実行権付与
 	const tmpAppImage = join(tmpBase, basename(appImagePath));
@@ -44,6 +62,7 @@ export async function extractIcons(
 			timeout: 30_000,
 		});
 	} catch {
+		activeTmpDirs.delete(tmpBase);
 		return {
 			candidates: [],
 			cleanup: () => rmSync(tmpBase, { recursive: true, force: true }),
@@ -53,6 +72,7 @@ export async function extractIcons(
 
 	const squashfsRoot = join(tmpBase, "squashfs-root");
 	if (!existsSync(squashfsRoot)) {
+		activeTmpDirs.delete(tmpBase);
 		return {
 			candidates: [],
 			cleanup: () => rmSync(tmpBase, { recursive: true, force: true }),
@@ -65,7 +85,10 @@ export async function extractIcons(
 
 	return {
 		candidates,
-		cleanup: () => rmSync(tmpBase, { recursive: true, force: true }),
+		cleanup: () => {
+			activeTmpDirs.delete(tmpBase); // トラッキング終了
+			rmSync(tmpBase, { recursive: true, force: true });
+		},
 		extractDir: tmpBase,
 	};
 }

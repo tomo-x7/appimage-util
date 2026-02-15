@@ -2,6 +2,7 @@ import { confirm, input, select } from "@inquirer/prompts";
 import { existsSync, statSync } from "fs";
 import { extname } from "path";
 import { CATEGORIES, type Category } from "./constants.js";
+import { customSelect } from "./custom-select.js";
 import type { DesktopEntry } from "./desktop.js";
 import { normalizeKeywords } from "./desktop.js";
 import type { IconCandidate } from "./icons.js";
@@ -13,7 +14,12 @@ export interface DesktopAnswers {
 	comment: string;
 	category: Category;
 	keywords: string;
+}
+
+/** アイコン抽出結果（cleanup を呼び出し元に委譲） */
+export interface IconResult {
 	iconChoice: IconChoice;
+	cleanup: () => void;
 }
 
 export type IconChoice =
@@ -60,33 +66,36 @@ export async function askDesktopEntry(defaults?: Partial<DesktopEntry>): Promise
 		comment: comment.trim(),
 		category,
 		keywords,
-		iconChoice: { type: "none" }, // placeholder — アイコンは別途質問
 	};
 }
 
 /**
  * install 時のアイコン選択を行う。
- * AppImage から抽出して候補を提示。候補がなければ手動/なしを選択。
+ * cleanup は呼び出し元がアイコンコピー完了後に呼ぶこと。
  */
-export async function askIconForInstall(appImagePath: string): Promise<IconChoice> {
+export async function askIconForInstall(appImagePath: string): Promise<IconResult> {
 	console.log("アイコンを AppImage から抽出しています...");
 	const { candidates, cleanup } = await extractIcons(appImagePath);
 
-	try {
-		if (candidates.length === 0) {
-			console.log("AppImage からアイコンが見つかりませんでした。");
-			return await askIconFallback();
-		}
-		return await askIconFromCandidates(candidates);
-	} finally {
+	if (candidates.length === 0) {
+		console.log("AppImage からアイコンが見つかりませんでした。");
+		const iconChoice = await askIconFallback();
 		cleanup();
+		return { iconChoice, cleanup: () => {} };
 	}
+
+	const iconChoice = await askIconFromCandidates(candidates);
+	// extracted の場合は tmp を消す前にコピーが必要なので cleanup を委譲
+	return { iconChoice, cleanup };
 }
 
 /**
  * edit 時のアイコン選択を行う（4択）。
+ * cleanup は呼び出し元がアイコンコピー完了後に呼ぶこと。
  */
-export async function askIconForEdit(appImagePathForExtract: string): Promise<IconChoice> {
+export async function askIconForEdit(appImagePathForExtract: string): Promise<IconResult> {
+	const noopCleanup = () => {};
+
 	const action = await select<string>({
 		message: "アイコンの設定:",
 		choices: [
@@ -99,131 +108,88 @@ export async function askIconForEdit(appImagePathForExtract: string): Promise<Ic
 
 	switch (action) {
 		case "keep":
-			return { type: "keep" };
-		case "manual":
-			return await askManualIcon();
+			return { iconChoice: { type: "keep" }, cleanup: noopCleanup };
+		case "manual": {
+			const iconChoice = await askManualIcon();
+			return { iconChoice, cleanup: noopCleanup };
+		}
 		case "extract": {
 			console.log("アイコンを AppImage から抽出しています...");
 			const { candidates, cleanup } = await extractIcons(appImagePathForExtract);
-			try {
-				if (candidates.length === 0) {
-					console.log("AppImage からアイコンが見つかりませんでした。");
-					return await askIconFallback();
-				}
-				return await askIconFromCandidates(candidates);
-			} finally {
+			if (candidates.length === 0) {
+				console.log("AppImage からアイコンが見つかりませんでした。");
+				const iconChoice = await askIconFallback();
 				cleanup();
+				return { iconChoice, cleanup: noopCleanup };
 			}
+			const iconChoice = await askIconFromCandidates(candidates);
+			return { iconChoice, cleanup };
 		}
 		case "none":
-			return { type: "none" };
+			return { iconChoice: { type: "none" }, cleanup: noopCleanup };
 		default:
-			return { type: "keep" };
+			return { iconChoice: { type: "keep" }, cleanup: noopCleanup };
 	}
 }
 
-/** 候補からアイコンを選択する（プレビュー機能付き） */
+/** 候補からアイコンを選択する（p キーでプレビュー） */
 async function askIconFromCandidates(candidates: IconCandidate[]): Promise<IconChoice> {
-	while (true) {
-		const choices = [
-			...candidates.map((c, i) => ({
-				name: c.label,
-				value: `select:${i}`,
-			})),
-			{ name: "--- プレビューする ---", value: "preview" },
-			{ name: "--- 手動で指定 ---", value: "manual" },
-			{ name: "--- アイコンなし ---", value: "none" },
-		];
+	const choices = [
+		...candidates.map((c, i) => ({
+			name: c.label,
+			value: `select:${i}` as string,
+		})),
+		{ name: "--- 手動で指定 ---", value: "manual" as string },
+		{ name: "--- アイコンなし ---", value: "none" as string },
+	];
 
-		const answer = await select<string>({
-			message: "アイコンを選択してください:",
-			choices,
-		});
-
-		if (answer === "preview") {
-			const previewIdx = await select<string>({
-				message: "プレビューするアイコンを選択:",
-				choices: candidates.map((c, i) => ({
-					name: c.label,
-					value: String(i),
-				})),
-			});
-			const idx = Number.parseInt(previewIdx, 10);
-			const candidate = candidates[idx];
-			if (candidate) {
-				console.log(`プレビュー中: ${candidate.label}`);
-				previewIcon(candidate.absolutePath);
+	const answer = await customSelect<string>({
+		message: "アイコンを選択してください:",
+		choices,
+		onPreview: (value) => {
+			if (value.startsWith("select:")) {
+				const idx = Number.parseInt(value.replace("select:", ""), 10);
+				const candidate = candidates[idx];
+				if (candidate) {
+					previewIcon(candidate.absolutePath);
+				}
 			}
-			// プレビュー後は再度選択に戻る
-			continue;
-		}
+		},
+	});
 
-		if (answer === "manual") {
-			return await askManualIcon();
-		}
-
-		if (answer === "none") {
-			return { type: "none" };
-		}
-
-		// select:N の場合
-		const idx = Number.parseInt(answer.replace("select:", ""), 10);
-		const candidate = candidates[idx];
-		if (!candidate) continue;
-
-		// 選択後のプレビュー確認
-		const wantPreview = await confirm({
-			message: "このアイコンをプレビューしますか？",
-			default: false,
-		});
-
-		if (wantPreview) {
-			previewIcon(candidate.absolutePath);
-			const adopt = await confirm({
-				message: "このアイコンを採用しますか？",
-				default: true,
-			});
-			if (!adopt) continue; // 再選択
-		}
-
-		return { type: "extracted", candidate };
+	if (answer === "manual") {
+		return await askManualIcon();
 	}
+	if (answer === "none") {
+		return { type: "none" };
+	}
+
+	const idx = Number.parseInt(answer.replace("select:", ""), 10);
+	const candidate = candidates[idx];
+	if (!candidate) {
+		return { type: "none" };
+	}
+	return { type: "extracted", candidate };
 }
 
 /** 手動指定でアイコンパスを入力する */
 async function askManualIcon(): Promise<IconChoice> {
-	while (true) {
-		const filePath = await input({
-			message: "アイコンファイルのパス (png/svg):",
-			validate: (v) => {
-				const trimmed = v.trim();
-				if (!trimmed) return "パスを入力してください";
-				const ext = extname(trimmed).slice(1).toLowerCase();
-				if (ext !== "png" && ext !== "svg") return "png または svg ファイルのみ対応しています";
-				if (!existsSync(trimmed)) return "ファイルが見つかりません";
-				if (!statSync(trimmed).isFile()) return "ファイルを指定してください";
-				return true;
-			},
-		});
+	const filePath = await input({
+		message: "アイコンファイルのパス (png/svg):",
+		validate: (v) => {
+			const trimmed = v.trim();
+			if (!trimmed) return "パスを入力してください";
+			const ext = extname(trimmed).slice(1).toLowerCase();
+			if (ext !== "png" && ext !== "svg") return "png または svg ファイルのみ対応しています";
+			if (!existsSync(trimmed)) return "ファイルが見つかりません";
+			if (!statSync(trimmed).isFile()) return "ファイルを指定してください";
+			return true;
+		},
+	});
 
-		const resolved = filePath.trim();
-		const ext = extname(resolved).slice(1).toLowerCase();
-
-		const wantPreview = await confirm({
-			message: "このアイコンをプレビューしますか？",
-			default: false,
-		});
-		if (wantPreview) {
-			previewIcon(resolved);
-			const adopt = await confirm({
-				message: "このアイコンを採用しますか？",
-				default: true,
-			});
-			if (!adopt) continue; // 再入力
-		}
-
-		return { type: "manual", filePath: resolved, ext };
-	}
+	const resolved = filePath.trim();
+	const ext = extname(resolved).slice(1).toLowerCase();
+	return { type: "manual", filePath: resolved, ext };
 }
 
 /** アイコンが見つからなかった場合のフォールバック（手動/なし） */

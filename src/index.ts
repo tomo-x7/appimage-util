@@ -1,8 +1,31 @@
 import { Command } from "commander";
 import { editCommand } from "./cmd-edit.js";
+import { cleanupAllTmpDirs } from "./icons.js";
 import { installCommand } from "./cmd-install.js";
 import { uninstallCommand } from "./cmd-uninstall.js";
 import { updateCommand } from "./cmd-update.js";
+
+// Ctrl+C でのクリーンアップ
+process.on("SIGINT", () => {
+	console.log("\n\n操作を中断しました。");
+	cleanupAllTmpDirs();
+	process.exit(130);
+});
+
+// Inquirer の ExitPromptError をクリーンに処理
+process.on("unhandledRejection", (reason) => {
+	if (reason && typeof reason === "object" && "message" in reason) {
+		const message = (reason as { message: string }).message;
+		if (message.includes("User force closed the prompt")) {
+			// SIGINT ハンドラに任せる（スタックトレース非表示）
+			return;
+		}
+	}
+	// その他のエラーは通常通り表示
+	console.error("Unhandled rejection:", reason);
+	cleanupAllTmpDirs();
+	process.exit(1);
+});
 
 const program = new Command();
 
