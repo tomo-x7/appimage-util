@@ -1,0 +1,6 @@
+{
+	"main": "dist/index.js",
+	"output": "dist/appimage-util.blob",
+	"disableExperimentalSEAWarning": true,
+	"useCodeCache": true
+}
