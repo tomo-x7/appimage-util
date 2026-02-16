@@ -1,9 +1,9 @@
 import { Command } from "commander";
 import { editCommand } from "./cmd-edit.js";
-import { cleanupAllTmpDirs } from "./icons.js";
 import { installCommand } from "./cmd-install.js";
 import { uninstallCommand } from "./cmd-uninstall.js";
 import { updateCommand } from "./cmd-update.js";
+import { cleanupAllTmpDirs } from "./icons.js";
 
 // Ctrl+C でのクリーンアップ
 process.on("SIGINT", () => {

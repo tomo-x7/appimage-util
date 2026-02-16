@@ -1,4 +1,4 @@
-import { confirm, input, select } from "@inquirer/prompts";
+import { input, select } from "@inquirer/prompts";
 import { existsSync, statSync } from "fs";
 import { extname } from "path";
 import { CATEGORIES, type Category } from "./constants.js";
